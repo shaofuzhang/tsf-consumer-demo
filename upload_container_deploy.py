@@ -9,16 +9,30 @@ from tencentcloud.tsf.v20180326 import tsf_client, models
 
 import sys
 import json
+import os
+import time
 
 # 密钥参数，替换为用户的secret_id和secret_key
 secret_id = "#"
 secret_key = "#"
+# docker build 命令
+docker_build_command = "#"
+# docker push 命令
+docker_push_command = "#"
 
 region = "ap-guangzhou"
 
 endpoint = "tsf.tencentcloudapi.com"
 
 client = None
+
+
+def docker_build():
+    os.system(docker_build_command)
+
+
+def docker_push():
+    os.system(docker_push_command)
 
 
 def init_client():
@@ -31,8 +45,8 @@ def init_client():
         client = tsf_client.TsfClient(cred, region, clientProfile)
         return client
     except TencentCloudSDKException as err:
-        print("client init error :" + err)
-        assert TencentCloudSDKException
+        print(err)
+        raise TencentCloudSDKException
 
 
 def describe_container_group_detail(group_id):
@@ -68,14 +82,37 @@ def deploy_container_group(container_group_detail_resp, tag_name):
     print(resp.to_json_string())
 
 
-if __name__ == '__main__':
+def get_tag_name():
+    tag_name = ""
+    try:
+        docker_build_tag_name = docker_build_command[docker_build_command.
+                                                     rfind(":") + 1:]
+        docker_push_tag_name = docker_push_command[docker_push_command.
+                                                   rfind(":") + 1:]
+        if docker_build_tag_name == docker_push_tag_name:
+            tag_name = docker_build_tag_name
+        else:
+            raise ValueError('Docker build tag name 和 push tag name 不一致')
+    except Exception:
+        raise ValueError('Docker tag name 异常')
+    return tag_name
+
+
+if __name__ == "__main__":
 
     # 部署组ID
     group_id = sys.argv[1]
-    # 镜像版本名称,如v1
-    tag_name = sys.argv[2]
 
+    # 镜像版本名称,如v1
+    tag_name = get_tag_name()
+
+    # group_id = "group-zvw397wa"
+    # tag_name = "docker-consumer"
+    docker_build()
+    docker_push()
     client = init_client()
     container_group_detail_resp = describe_container_group_detail(group_id)
     # TODO 刚push的镜像有一定延迟，需要加入等待镜像逻辑
+    # 目前没有查询镜像版本接口，粗暴延迟
+    time.sleep(10)
     deploy_container_group(container_group_detail_resp, tag_name)

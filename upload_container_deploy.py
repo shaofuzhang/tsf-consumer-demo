@@ -77,4 +77,5 @@ if __name__ == '__main__':
 
     client = init_client()
     container_group_detail_resp = describe_container_group_detail(group_id)
+    # TODO 刚push的镜像有一定延迟，需要加入等待镜像逻辑
     deploy_container_group(container_group_detail_resp, tag_name)
